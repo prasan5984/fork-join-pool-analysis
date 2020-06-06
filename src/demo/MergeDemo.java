@@ -39,8 +39,9 @@ package demo;/*
 
 
 import demo.mergesort.ForkJoinMergeSort;
-import demo.mergesort.MergeSortExecutorTask;
 import demo.mergesort.MergeSortExecutorTaskV1;
+import demo.mergesort.MergeSortExecutorTaskV2;
+import demo.mergesort.MergeSortSingleThreadTask;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,7 +87,7 @@ public class MergeDemo {
     }
 
     private void run(Configuration config) {
-        config.mergeSortTasks.forEach(task -> run(task, config));
+        config.mergeSortEnums.forEach(task -> run(task, config));
     }
 
     /**
@@ -94,7 +95,7 @@ public class MergeDemo {
      *
      * @param config contains the settings for the test
      */
-    private void run(MergeSortTask task, Configuration config) {
+    private void run(MergeSortEnum task, Configuration config) {
         System.out.println("Stats for task, " + task);
         Range sizes = config.sizes;
         Range parallelism = config.parallelism;
@@ -146,7 +147,7 @@ public class MergeDemo {
         System.out.println("");
     }
 
-    private void runForSize(MergeSortTask task, Range parallelism, int elements, long[][] times, int size) throws Exception {
+    private void runForSize(MergeSortEnum task, Range parallelism, int elements, long[][] times, int size) throws Exception {
         for (int step = 0; step < parallelism.getIterations(); step++) {
             long time = runForParallelism(task, ITERATIONS, elements, parallelism.get(step));
             times[size][step] = time;
@@ -161,7 +162,7 @@ public class MergeDemo {
      * @param parallelism parallelism for the ForkJoin framework
      * @return the median time of runs
      */
-    private long runForParallelism(MergeSortTask task, int iterations, int elements, int parallelism) throws Exception {
+    private long runForParallelism(MergeSortEnum task, int iterations, int elements, int parallelism) throws Exception {
         MergeSort mergeSort = task.getTask(parallelism);
         long[] times = new long[iterations];
 
@@ -199,20 +200,32 @@ public class MergeDemo {
     /**
      * Generates 1000 arrays of 1000 elements and sorts them as a warmup
      */
-    private void warmup(MergeSortTask task) throws Exception {
-        MergeSort mergeSort = task.getTask(Runtime.getRuntime()
-                                                  .availableProcessors());
+    private void warmup(MergeSortEnum task) throws Exception {
+        MergeSort mergeSort = task.getTask(task == MergeSortEnum.ExecutorV1 ? 16 : Runtime.getRuntime()
+                                                                                          .availableProcessors());
         for (int i = 0; i < 1000; i++) {
             mergeSort.sort(generateArray(1000));
         }
         mergeSort.close();
     }
 
-    private enum MergeSortTask {
-        FixedPool {
+    private enum MergeSortEnum {
+        SingleThread {
+            @Override
+            MergeSort getTask(int parallelism) {
+                return new MergeSortSingleThreadTask(parallelism);
+            }
+        },
+        ExecutorV1 {
             @Override
             MergeSort getTask(int parallelism) {
                 return new MergeSortExecutorTaskV1(parallelism);
+            }
+        },
+        ExecutorV2 {
+            @Override
+            MergeSort getTask(int parallelism) {
+                return new MergeSortExecutorTaskV2(parallelism);
             }
         },
         ForkJoin {
@@ -227,7 +240,9 @@ public class MergeDemo {
 
     public interface MergeSort {
         void sort(int[] array) throws Exception;
-        default void close() {}
+
+        default void close() {
+        }
     }
 
     /**
@@ -285,17 +300,17 @@ public class MergeDemo {
      */
     private static class Configuration {
         private final static Configuration defaultConfig = new Configuration(
-                new Range(20000, 20000, 10),
-                new Range(2, 2, 10),
-                Arrays.asList(MergeSortTask.FixedPool, MergeSortTask.ForkJoin));
+                new Range(2000000, 20000, 1),
+                new Range(Runtime.getRuntime().availableProcessors(), 2, 1),
+                Arrays.asList(MergeSortEnum.ExecutorV2));
         private final Range sizes;
         private final Range parallelism;
-        private final Collection<MergeSortTask> mergeSortTasks;
+        private final Collection<MergeSortEnum> mergeSortEnums;
 
-        private Configuration(Range sizes, Range parallelism, Collection<MergeSortTask> mergeSortTasks) {
+        private Configuration(Range sizes, Range parallelism, Collection<MergeSortEnum> mergeSortEnums) {
             this.sizes = sizes;
             this.parallelism = parallelism;
-            this.mergeSortTasks = mergeSortTasks;
+            this.mergeSortEnums = mergeSortEnums;
         }
 
         /**
@@ -314,7 +329,7 @@ public class MergeDemo {
                         return new Configuration(Range.parse(args, 0),
                                 Range.parse(args, 3),
                                 Arrays.stream(args, 6, args.length)
-                                      .map(MergeSortTask::valueOf)
+                                      .map(MergeSortEnum::valueOf)
                                       .collect(Collectors.toList()));
                     }
                 } catch (NumberFormatException e) {

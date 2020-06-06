@@ -3,27 +3,19 @@ package demo.mergesort;
 import demo.MergeDemo;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-public class MergeSortExecutorTask implements Runnable, MergeDemo.MergeSort {
+public class MergeSortSingleThreadTask implements Runnable, MergeDemo.MergeSort {
     private static final int THRESHOLD = 8;
-    private final ExecutorService executorService;
     private int low;
     private int high;
     private int[] array;
 
-    public MergeSortExecutorTask(int parallelism) {
-        this.executorService = Executors.newFixedThreadPool(parallelism);
+    public MergeSortSingleThreadTask(int parallelism) {
     }
 
-    public MergeSortExecutorTask(ExecutorService executorService,
-                                 int[] array,
-                                 int low,
-                                 int high) {
-        this.executorService = executorService;
+    public MergeSortSingleThreadTask(int[] array,
+                                     int low,
+                                     int high) {
         this.array = array;
         this.low = low;
         this.high = high;
@@ -31,7 +23,8 @@ public class MergeSortExecutorTask implements Runnable, MergeDemo.MergeSort {
 
     public void sort(int[] array) throws Exception {
         this.array = array;
-        submitTask(0, array.length).get();
+        getTask(0, array.length).run();
+
     }
 
     @Override
@@ -41,29 +34,18 @@ public class MergeSortExecutorTask implements Runnable, MergeDemo.MergeSort {
         } else {
             int middle = low + ((high - low) >> 1);
             // Trigger Right in next thread
-            Future<?> futureRight = submitTask(middle, high);
             //Run left in current thread
             getTask(low, middle).run();
-            //getTask(middle, high).run();
-
-            try {
-                futureRight.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            getTask(middle, high).run();
 
             // Then merge the results
             merge(middle);
         }
     }
 
-    private Future<?> submitTask(int low, int middle) {
-        return executorService.submit(getTask(low, middle));
-    }
+    private MergeSortSingleThreadTask getTask(int low, int high) {
+        return new MergeSortSingleThreadTask(
 
-    private MergeSortExecutorTask getTask(int low, int high) {
-        return new MergeSortExecutorTask(
-                executorService,
                 array,
                 low,
                 high);
