@@ -203,7 +203,7 @@ public class MergeDemo {
     private void warmup(MergeSortEnum task) throws Exception {
         MergeSort mergeSort = task.getTask(task == MergeSortEnum.ExecutorV1 ? 16 : Runtime.getRuntime()
                                                                                           .availableProcessors());
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10; i++) {
             mergeSort.sort(generateArray(1000));
         }
         mergeSort.close();
@@ -302,7 +302,8 @@ public class MergeDemo {
         private final static Configuration defaultConfig = new Configuration(
                 new Range(2000000, 20000, 1),
                 new Range(Runtime.getRuntime().availableProcessors(), 2, 1),
-                Arrays.asList(MergeSortEnum.ExecutorV2));
+                //new Range(32, 2, 1),
+                Arrays.asList(MergeSortEnum.ForkJoin));
         private final Range sizes;
         private final Range parallelism;
         private final Collection<MergeSortEnum> mergeSortEnums;

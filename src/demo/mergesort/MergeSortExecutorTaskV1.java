@@ -40,13 +40,13 @@ public class MergeSortExecutorTaskV1 implements Runnable, MergeDemo.MergeSort {
             Arrays.sort(array, low, high);
         } else {
             int middle = low + ((high - low) >> 1);
+            //Future<?> futureLeft = submitTask(low, middle);
             getTask(low, middle).run();
             // Trigger Right in next thread
             Future<?> futureRight = submitTask(middle, high);
-            //Run left in current thread
-            //getTask(middle, high).run();
 
             try {
+                //futureLeft.get();
                 futureRight.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);

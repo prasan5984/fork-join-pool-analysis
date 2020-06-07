@@ -4,7 +4,7 @@ import demo.MergeDemo;
 
 import java.util.Arrays;
 
-public class MergeSortSingleThreadTask implements Runnable, MergeDemo.MergeSort {
+public class MergeSortSingleThreadTask implements MergeDemo.MergeSort {
     private static final int THRESHOLD = 8;
     private int low;
     private int high;
@@ -27,7 +27,6 @@ public class MergeSortSingleThreadTask implements Runnable, MergeDemo.MergeSort 
 
     }
 
-    @Override
     public void run() {
         if (high - low <= THRESHOLD) {
             Arrays.sort(array, low, high);
@@ -45,7 +44,6 @@ public class MergeSortSingleThreadTask implements Runnable, MergeDemo.MergeSort 
 
     private MergeSortSingleThreadTask getTask(int low, int high) {
         return new MergeSortSingleThreadTask(
-
                 array,
                 low,
                 high);
